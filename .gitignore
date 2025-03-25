@@ -1,9 +1,11 @@
 # Folders with data, models, logs...
-data_generation/*
+
+!data_generation/*.py
 !data_generation/*.gitkeep
 
 tokenizer/*
 !tokenizer/*.gitkeep
+!tokenizer/*.json
 
 data/*
 !data/*.gitkeep

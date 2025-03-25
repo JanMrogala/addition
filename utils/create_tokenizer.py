@@ -55,7 +55,7 @@ def create_tokenizer(vocab: Set[str], cfg: DictConfig) -> Tokenizer:
     # Get and print special token IDs
     bos_id = tokenizer.encode("[BOS]").ids[0]
     eos_id = tokenizer.encode("[EOS]").ids[0]
-    out_id = tokenizer.encode("[OUT]").ids[0]
+    out_id = tokenizer.encode(f"{cfg.data.split_str}").ids[0]
     
     print(f"Regular vocabulary size (excluding special tokens): {regular_token_count}")
     print(f"Total vocabulary size (including special tokens): {total_token_count}")

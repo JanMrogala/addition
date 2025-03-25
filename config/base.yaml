@@ -18,16 +18,16 @@ convert_hf:
 
 wandb:
   # Name your model
-  model_name: "Pythia-${model.n_layer}-${model.n_head}-${model.n_embd}-___INSERT-NAME-HERE___" 
+  model_name: "Pythia-${model.n_layer}-${model.n_head}-${model.n_embd}-addition-${data.train_file}" 
   # And your project
-  proj_name: "None"
+  proj_name: "addition"
   num_examples_reported: 100
 
 
 data:
   # No need to change.
   datapath: data
-  train_file: "data/train.json"
+  train_file: "data/train40960.json"
   test_file: "data/test.json" # NOTE: validation set uses same data as test set
   num_workers: 32
 
@@ -35,7 +35,7 @@ data:
   tokenizer_path: "tokenizer/tokenizer.json"
 
   # No need to change.
-  split_str: "[OUT]"
+  split_str: "="
 
   # If you want to subsample sets:
   sampling:
@@ -56,14 +56,14 @@ data:
 model:
   name: ${wandb.model_name}
 
-  batch_size: 512
+  batch_size: 4096
   accumulate_grad_batches: 1
-  block_size: 1024
-  epochs: 100
+  block_size: 24
+  epochs: 200
 
   n_layer: 12
   n_head: 8
-  n_embd: 256
+  n_embd: 64
 
 optim:
   lr_type: "linear" # options: linear or linear-reg, 
