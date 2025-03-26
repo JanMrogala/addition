@@ -18,7 +18,7 @@ def generate_examples(num_examples):
             b_spaced = ' '.join(str(b))
             c_spaced = ' '.join(str(c))
             
-            input_text = f"{a_spaced} + {b_spaced} = "
+            input_text = f"{a_spaced} + {b_spaced}"
             output_text = f"{c_spaced}"
             
             examples.append({
@@ -30,7 +30,7 @@ def generate_examples(num_examples):
 
 def main():
 
-    nums = [16384, 40960, 81920, 122880, 163840, 204800]
+    nums = [500, 1000, 3000, 5000]
     
     # Generate training data
     for num in tqdm(nums):

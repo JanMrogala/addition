@@ -18,7 +18,7 @@ convert_hf:
 
 wandb:
   # Name your model
-  model_name: "Pythia-${model.n_layer}-${model.n_head}-${model.n_embd}-addition-${data.train_file}" 
+  model_name: "Pythia-${model.n_layer}-${model.n_head}-${model.n_embd}-addition-${data.train_file}-cos_new-200-test2" 
   # And your project
   proj_name: "addition"
   num_examples_reported: 100
@@ -27,7 +27,7 @@ wandb:
 data:
   # No need to change.
   datapath: data
-  train_file: "data/train40960.json"
+  train_file: "data/train5000.json"
   test_file: "data/test.json" # NOTE: validation set uses same data as test set
   num_workers: 32
 
@@ -59,16 +59,18 @@ model:
   batch_size: 4096
   accumulate_grad_batches: 1
   block_size: 24
-  epochs: 200
+  epochs: 2000
 
   n_layer: 12
   n_head: 8
   n_embd: 64
 
 optim:
-  lr_type: "linear" # options: linear or linear-reg, 
+  lr_type: None # options: linear or linear-reg, 
                     # otherwise cosine decay (lr_type: None)
-  lr: 2e-4          # learning rate (used for cosine schedule)
+  lr: 0.0118          # learning rate (used for cosine schedule)
+  warmup_steps: 200
+
 
 eval:
   num_examples: 512
