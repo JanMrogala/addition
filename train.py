@@ -39,9 +39,15 @@ class LitLLM(L.LightningModule):
         self.train_batches = train_batches
         self.delimiter_token_id = delimiter_token_id
         _, self.hf_conf = hf_config.get_configs(cfg)
+        
+        # Store dataset names for validation reporting
+        self.val_dataset_names = []
+        if hasattr(cfg.data, 'test_files'):
+            for test_file in cfg.data.test_files:
+                base_name = os.path.splitext(os.path.basename(test_file))[0]
+                self.val_dataset_names.append(base_name)
 
     def setup(self, stage):
-
         self.hf_conf["bos_token_id"] = self.preprocessor.tokenizer.convert_tokens_to_ids("[BOS]")
         self.hf_conf["eos_token_id"] = self.preprocessor.tokenizer.convert_tokens_to_ids("[EOS]")
         self.hf_conf["vocab_size"] = len(self.preprocessor.tokenizer.get_vocab())
@@ -101,84 +107,102 @@ class LitLLM(L.LightningModule):
         # Calculate accuracy (avoid division by zero)
         accuracy = total_correct.float() / total_tokens if total_tokens > 0 else torch.tensor(0.0)
 
-        self.log(f"acc", accuracy, on_epoch=True, sync_dist=True, prog_bar=True)
-        self.log(f"loss", loss, on_epoch=True, sync_dist=True, prog_bar=True)
-        return {f"loss": loss}
+        # Log metrics with dataset name prefix if multiple validation sets
+        dataset_prefix = ""
+        if len(self.val_dataset_names) > 0:
+            # If there are multiple datasets, use the dataset name as a prefix
+            dataset_prefix = f"{self.val_dataset_names[dataloader_idx]}/"
+        
+        self.log(f"{dataset_prefix}acc", accuracy, on_epoch=True, sync_dist=True, prog_bar=True)
+        self.log(f"{dataset_prefix}loss", loss, on_epoch=True, sync_dist=True, prog_bar=True)
+        
+        # Also log the combined metrics for checkpoint monitoring
+        self.log(f"acc", accuracy, on_epoch=True, sync_dist=True, prog_bar=False)
+        
+        return {f"{dataset_prefix}loss": loss}
     
     def on_validation_epoch_end(self):
-        test = self.trainer.datamodule.dataset["test"]
-
+        # Save model checkpoint
         save_path = self.cfg.convert_hf.in_path
         self.llm.model.to(self.llm.preprocessor.device)
         self.llm.save(save_path)
-
         self.llm.model.to(self.device)
-
-        evaluator = Evaluator(
-            self.cfg,
-            test,
-            self.preprocessor.tokenizer,
-            self.cfg.data.split_str,
-            self.global_step,
-            self.llm.model,
-        )
         
-        # Get metrics dictionary from evaluator
-        metrics = evaluator.evaluate()
-        
-        # Log all metrics to wandb/Lightning
-        for metric_name, value in metrics.items():
-            self.log(
-                f"Evaluation/{metric_name}",
-                value,
-                on_epoch=True,
-                prog_bar=True,
-                sync_dist=True,
-            )
-        
-        if wandb.run is not None and hasattr(evaluator, 'predictions_after_delimiter'):
-            # Create example table
-            examples_table = wandb.Table(columns=["Prompt", "Prediction", "Ground Truth", "Exact Match"])
-            
-            # Select a few random indices to log
-            num_examples = min(self.cfg.wandb.num_examples_reported, len(evaluator.prompts))
-            indices = np.random.choice(len(evaluator.prompts), num_examples, replace=False)
-            
-            for i in indices:
-                prompt = self.preprocessor.tokenizer.decode(evaluator.prompts[i], skip_special_tokens=True)
-                pred = evaluator.predictions_after_delimiter[i]
-                gt = evaluator.gts[i]
-                exact_match = pred == gt
+        # Evaluate on each test dataset separately
+        for dataset_idx, dataset_name in enumerate(self.val_dataset_names):
+            # Get the appropriate test dataset 
+            test_key = f"test_{dataset_name}"
+            if test_key in self.trainer.datamodule.dataset:
+                test_data = self.trainer.datamodule.dataset[test_key]
                 
-                examples_table.add_data(prompt, pred, gt, exact_match)
-            
-            wandb.log({"evaluation_examples": examples_table}, step=self.global_step)
+                # Evaluate the model on this dataset
+                evaluator = Evaluator(
+                    self.cfg,
+                    test_data,
+                    self.preprocessor.tokenizer,
+                    self.cfg.data.split_str,
+                    self.global_step,
+                    self.llm.model,
+                )
+                
+                # Get metrics dictionary from evaluator
+                metrics = evaluator.evaluate()
+                
+                # Log all metrics to wandb/Lightning with dataset prefix
+                for metric_name, value in metrics.items():
+                    self.log(
+                        f"Evaluation/{dataset_name}/{metric_name}",
+                        value,
+                        on_epoch=True,
+                        prog_bar=True,
+                        sync_dist=True,
+                    )
+                
+                if wandb.run is not None and hasattr(evaluator, 'predictions_after_delimiter'):
+                    # Create example table for this dataset
+                    examples_table = wandb.Table(columns=["Dataset", "Prompt", "Prediction", "Ground Truth", "Exact Match"])
+                    
+                    # Select a few random indices to log
+                    num_examples = min(self.cfg.wandb.num_examples_reported, len(evaluator.prompts))
+                    indices = np.random.choice(len(evaluator.prompts), num_examples, replace=False)
+                    
+                    for i in indices:
+                        prompt = self.preprocessor.tokenizer.decode(evaluator.prompts[i], skip_special_tokens=True)
+                        pred = evaluator.predictions_after_delimiter[i]
+                        gt = evaluator.gts[i]
+                        exact_match = pred == gt
+                        
+                        examples_table.add_data(dataset_name, prompt, pred, gt, exact_match)
+                    
+                    wandb.log({f"evaluation_examples/{dataset_name}": examples_table}, step=self.global_step)
 
     def configure_optimizers(self):
-
         if self.cfg.optim.lr_type == "linear":
-            warmup_steps = 10
+            warmup_steps = self.cfg.optim.warmup_steps
             optimizer = torch.optim.AdamW(
-                self.llm.model.parameters(), lr=0.0002, weight_decay=0.0, betas=(0.9, 0.95)
+                self.llm.model.parameters(), lr=self.cfg.optim.lr, weight_decay=self.cfg.optim.weight_decay, betas=(0.9, 0.95)
             )
             scheduler = torch.optim.lr_scheduler.LambdaLR(
                 optimizer, lambda step: (step + 1) / warmup_steps
             )
             return [optimizer], [scheduler]
         elif self.cfg.optim.lr_type == "linear-reg":
-            warmup_steps = 10
+            warmup_steps = self.cfg.optim.warmup_steps
             optimizer = torch.optim.AdamW(
-                self.llm.model.parameters(), lr=0.0002, weight_decay=0.01, betas=(0.9, 0.95)
+                self.llm.model.parameters(), lr=self.cfg.optim.lr, weight_decay=self.cfg.optim.weight_decay, betas=(0.9, 0.95)
             )
             scheduler = torch.optim.lr_scheduler.LambdaLR(
                 optimizer, lambda step: (step + 1) / warmup_steps
             )
             return [optimizer], [scheduler]
         else:
+            # n_steps = self.cfg.optim.n_steps
             n_steps = self.cfg.model.epochs * self.train_batches
-            warmup_steps = self.train_batches  # 2* epochs worth of steps also viable
+            warmup_steps = self.cfg.optim.warmup_steps
 
-            optimizer = torch.optim.AdamW(self.parameters(), lr=self.cfg.optim.lr)
+            optimizer = torch.optim.AdamW(
+                self.llm.model.parameters(), lr=self.cfg.optim.lr, weight_decay=self.cfg.optim.weight_decay, betas=(0.9, 0.95)
+            )
             scheduler = {
                 "scheduler": get_cosine_schedule_with_warmup(
                     optimizer,

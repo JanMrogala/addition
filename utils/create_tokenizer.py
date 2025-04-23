@@ -73,7 +73,7 @@ def create_tokenizer(vocab: Set[str], cfg: DictConfig) -> Tokenizer:
 
 def get_vocab(cfg: DictConfig) -> Set[str]:
     """
-    Build vocabulary from training and validation files.
+    Build vocabulary from training and test files.
     
     Args:
         cfg: Configuration object containing file paths.
@@ -81,12 +81,18 @@ def get_vocab(cfg: DictConfig) -> Set[str]:
     Returns:
         Set of unique tokens for vocabulary.
     """
+    # Load training data
     train_data = _load_json_file(cfg.data.train_file)
-    val_data = _load_json_file(cfg.data.test_file)
     
-    combined_data = train_data + val_data
+    # Load data from all test files
+    test_data = []
+    for test_file in cfg.data.test_files:
+        test_data.extend(_load_json_file(test_file))
     
-    # Extract both input and output text from the new data format
+    # Combine training and test data
+    combined_data = train_data + test_data
+    
+    # Extract both input and output text from the data format
     all_text = []
     for item in combined_data:
         all_text.append(item["input"])

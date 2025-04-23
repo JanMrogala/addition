@@ -96,12 +96,18 @@ def main(cfg: DictConfig):
     total_removed = 0
     overall_max_length = 0
 
-    # Only process train and test files (no val)
+    # Only process train and test files
     files_to_process = []
     if hasattr(cfg.data, 'train_file') and cfg.data.train_file:
         files_to_process.append(cfg.data.train_file)
-    if hasattr(cfg.data, 'test_file') and cfg.data.test_file:
-        files_to_process.append(cfg.data.test_file)
+    
+    # Handle multiple test files
+    if hasattr(cfg.data, 'test_files') and cfg.data.test_files:
+        if isinstance(cfg.data.test_files, list):
+            files_to_process.extend(cfg.data.test_files)
+        else:
+            # Handle the case where it might be a single string
+            files_to_process.append(cfg.data.test_files)
 
     if not files_to_process:
         print("No data files specified in configuration.")
