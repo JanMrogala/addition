@@ -204,12 +204,14 @@ def generate_roman_format(num_examples):
 
 # ---- Main data generation function ----
 
+# Add this to the generate_mixed_dataset function in functions.py
 def generate_mixed_dataset(
     output_dir,
     total_train,
     total_test,
     generator_ratios,
-    test_generators=None
+    test_generators=None,
+    oversample_factor=1  # New parameter for oversampling
 ):
     """
     Generate a mixed dataset with arbitrary generators and ratios.
@@ -221,6 +223,7 @@ def generate_mixed_dataset(
         generator_ratios: Dict mapping generator functions to their ratios (must sum to 1.0)
         test_generators: List of generators to use for test sets or a single generator.
                          If None, uses the same ratio mix as training.
+        oversample_factor: Number of times to repeat generated examples (for oversampling)
     """
     # Validate ratios
     ratio_sum = sum(generator_ratios.values())
@@ -237,6 +240,23 @@ def generate_mixed_dataset(
         print(f"Generating {num_examples} training examples with {generator.__name__}...")
         examples = generator(num_examples)
         train_examples.extend(examples)
+    
+    # Apply oversampling if requested
+    if oversample_factor > 1:
+        original_examples = train_examples.copy()
+        original_count = len(original_examples)
+        
+        # Calculate how many times to repeat to get close to but not exceed desired count
+        total_after_oversampling = original_count * oversample_factor
+        
+        print(f"Oversampling training data: repeating {original_count} examples {oversample_factor} times")
+        print(f"Target count after oversampling: {total_after_oversampling}")
+        
+        # Create the oversampled dataset by repeating the original examples
+        train_examples = original_examples * oversample_factor
+        
+        # Verify final count
+        print(f"Final training example count after oversampling: {len(train_examples)}")
     
     # Shuffle training examples
     random.shuffle(train_examples)

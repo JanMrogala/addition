@@ -18,14 +18,12 @@ convert_hf:
 
 wandb:
   # Name your model
-  model_name: "Sort-Add-${data.train_file}-1024-${optim.lr}" 
+  model_name: "${now:%Y-%m-%d_%H-%M-%S}_${data.subset}_" 
   # And your project
-  proj_name: "addition_roman_mix"
+  proj_name: "ability_transfer"
   num_examples_reported: 100
 
-
 data:
-  # No need to change.
   subset: sort_addition
   datapath: data
   train_file: "data/${data.subset}/train.json"
@@ -41,7 +39,7 @@ data:
   # If you want to subsample sets:
   sampling:
     # Set to True if you want to subsample your sets.
-    sample_train_set: True
+    sample_train_set: False
     sample_test_set: False
     sample_val_set: False
 
@@ -57,20 +55,20 @@ data:
 model:
   name: ${wandb.model_name}
 
-  batch_size: 1024
+  batch_size: 512
   accumulate_grad_batches: 1
   block_size: 32
-  epochs: 4000
+  epochs: 2000
 
-  n_layer: 12
+  n_layer: 8
   n_head: 8
-  n_embd: 64
+  n_embd: 128
 
 optim:
   lr_type: linear-reg # options: linear or linear-reg, 
                     # otherwise cosine decay (lr_type: None)
-  lr: 2e-6         # learning rate (used for cosine schedule)
-  warmup_steps: 10
+  lr: 2e-4         # learning rate (used for cosine schedule)
+  warmup_steps: 1000
   # n_steps: ${model.epochs}
   weight_decay: 0.01
 
