@@ -19,6 +19,7 @@ import os
 import wandb
 import numpy as np
 from transformers import get_cosine_schedule_with_warmup
+from typing import Optional
 
 import logging
 
@@ -41,11 +42,15 @@ class LitLLM(L.LightningModule):
         _, self.hf_conf = hf_config.get_configs(cfg)
         
         # Store dataset names for validation reporting
-        self.val_dataset_names = []
+        self.dataset_names = []
         if hasattr(cfg.data, 'test_files'):
             for test_file in cfg.data.test_files:
                 base_name = os.path.splitext(os.path.basename(test_file))[0]
-                self.val_dataset_names.append(base_name)
+                self.dataset_names.append(base_name)
+        
+        # For tracking combined validation metrics
+        self.val_acc_sum = 0.0
+        self.val_count = 0
 
     def setup(self, stage):
         self.hf_conf["bos_token_id"] = self.preprocessor.tokenizer.convert_tokens_to_ids("[BOS]")
@@ -82,6 +87,11 @@ class LitLLM(L.LightningModule):
         self.log("train_loss", loss, sync_dist=True)
         return loss
 
+    def on_validation_epoch_start(self):
+        # Reset tracking variables at the start of each validation epoch
+        self.val_acc_sum = 0.0
+        self.val_count = 0
+
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         idx, targets, att_mask = (
             batch["input_ids"],
@@ -107,33 +117,44 @@ class LitLLM(L.LightningModule):
         # Calculate accuracy (avoid division by zero)
         accuracy = total_correct.float() / total_tokens if total_tokens > 0 else torch.tensor(0.0)
 
-        # Log metrics with dataset name prefix if multiple validation sets
-        dataset_prefix = ""
-        if len(self.val_dataset_names) > 0:
-            # If there are multiple datasets, use the dataset name as a prefix
-            dataset_prefix = f"{self.val_dataset_names[dataloader_idx]}/"
+        # Get the dataset name for this validation dataloader
+        dataset_name = self.dataset_names[dataloader_idx] if dataloader_idx < len(self.dataset_names) else f"dataset_{dataloader_idx}"
         
-        self.log(f"{dataset_prefix}acc", accuracy, on_epoch=True, sync_dist=True, prog_bar=True)
-        self.log(f"{dataset_prefix}loss", loss, on_epoch=True, sync_dist=True, prog_bar=True)
+        # Log metrics with dataset prefix for validation
+        self.log(f"Validation/{dataset_name}/acc", accuracy, on_epoch=True, sync_dist=True, prog_bar=True)
+        self.log(f"Validation/{dataset_name}/loss", loss, on_epoch=True, sync_dist=True, prog_bar=True)
         
-        # Also log the combined metrics for checkpoint monitoring
-        self.log(f"acc", accuracy, on_epoch=True, sync_dist=True, prog_bar=False)
+        # Track for combined accuracy (for checkpoint monitoring)
+        self.val_acc_sum += accuracy.item()
+        self.val_count += 1
         
-        return {f"{dataset_prefix}loss": loss}
+        return {"val_loss": loss, "val_acc": accuracy}
     
     def on_validation_epoch_end(self):
+        # Compute and log average validation accuracy (for checkpoint monitoring)
+        if self.val_count > 0:
+            avg_acc = self.val_acc_sum / self.val_count
+            self.log("acc", avg_acc, prog_bar=True, sync_dist=True)
+        
         # Save model checkpoint
         save_path = self.cfg.convert_hf.in_path
         self.llm.model.to(self.llm.preprocessor.device)
         self.llm.save(save_path)
         self.llm.model.to(self.device)
         
-        # Evaluate on each test dataset separately
-        for dataset_idx, dataset_name in enumerate(self.val_dataset_names):
-            # Get the appropriate test dataset 
+        # Run evaluation on each dataset
+        self.run_evaluation()
+    
+    def run_evaluation(self):
+        """Run evaluation on each dataset and log metrics."""
+        # Evaluate on each dataset separately
+        for dataset_idx, dataset_name in enumerate(self.dataset_names):
+            # Get the appropriate test dataset
             test_key = f"test_{dataset_name}"
             if test_key in self.trainer.datamodule.dataset:
                 test_data = self.trainer.datamodule.dataset[test_key]
+                
+                print(f"Running evaluation on dataset: {dataset_name}")
                 
                 # Evaluate the model on this dataset
                 evaluator = Evaluator(
@@ -154,13 +175,13 @@ class LitLLM(L.LightningModule):
                         f"Evaluation/{dataset_name}/{metric_name}",
                         value,
                         on_epoch=True,
-                        prog_bar=True,
+                        prog_bar=False,
                         sync_dist=True,
                     )
                 
                 if wandb.run is not None and hasattr(evaluator, 'predictions_after_delimiter'):
                     # Create example table for this dataset
-                    examples_table = wandb.Table(columns=["Dataset", "Prompt", "Prediction", "Ground Truth", "Exact Match"])
+                    examples_table = wandb.Table(columns=["Prompt", "Prediction", "Ground Truth", "Exact Match"])
                     
                     # Select a few random indices to log
                     num_examples = min(self.cfg.wandb.num_examples_reported, len(evaluator.prompts))
@@ -172,9 +193,9 @@ class LitLLM(L.LightningModule):
                         gt = evaluator.gts[i]
                         exact_match = pred == gt
                         
-                        examples_table.add_data(dataset_name, prompt, pred, gt, exact_match)
+                        examples_table.add_data(prompt, pred, gt, exact_match)
                     
-                    wandb.log({f"evaluation_examples/{dataset_name}": examples_table}, step=self.global_step)
+                    wandb.log({f"Examples/{dataset_name}": examples_table}, step=self.global_step)
 
     def configure_optimizers(self):
         if self.cfg.optim.lr_type == "linear":
@@ -194,6 +215,28 @@ class LitLLM(L.LightningModule):
             scheduler = torch.optim.lr_scheduler.LambdaLR(
                 optimizer, lambda step: (step + 1) / warmup_steps
             )
+            return [optimizer], [scheduler]
+        
+        elif self.cfg.optim.lr_type == "linear-reg-capped":
+            warmup_steps = self.cfg.optim.warmup_steps
+            max_lr = self.cfg.optim.max_lr
+            base_lr = self.cfg.optim.lr  # Original learning rate (0.00002)
+            
+            optimizer = torch.optim.AdamW(
+                self.llm.model.parameters(), lr=base_lr, weight_decay=self.cfg.optim.weight_decay, betas=(0.9, 0.95)
+            )
+            
+            # Define a lambda function that caps at max_lr
+            def lr_lambda(step):
+                if step < warmup_steps:
+                    return (step + 1) / warmup_steps * (max_lr / base_lr)
+                else:
+                    return max_lr / base_lr
+            
+            scheduler = torch.optim.lr_scheduler.LambdaLR(
+                optimizer, lr_lambda
+            )
+            
             return [optimizer], [scheduler]
         else:
             # n_steps = self.cfg.optim.n_steps
@@ -221,7 +264,7 @@ class LitLLM(L.LightningModule):
 
 @hydra.main(
     config_path="config",
-    config_name="base",
+    config_name="lengths",
     version_base=None,
 )
 def main(cfg: DictConfig):
@@ -252,7 +295,6 @@ def main(cfg: DictConfig):
 
     train_size = len(data.train_dataloader())
     trace_start_token_id = tokenizer.encode(cfg.data.split_str, add_special_tokens=True)[0]
-    # print(trace_start_token_id)
 
     lit_model = LitLLM(model=model, cfg=cfg, train_batches=train_size, preprocessor=preprocessor,
                        delimiter_token_id=trace_start_token_id)
@@ -262,11 +304,11 @@ def main(cfg: DictConfig):
     )
 
     checkpoint_callback = ModelCheckpoint(
-        monitor="acc",  # what metric to track
-        dirpath=f"temp/checkpoints/{cfg.model.name}",  # where to save checkpoints
-        filename="{epoch:02d}-{acc:.4f}",  # how to name checkpoints
-        save_top_k=2,  # save top 3 models
-        mode="max",  # lower val_loss is better
+        monitor="acc",  # This is the combined accuracy across validation sets
+        dirpath=f"temp/checkpoints/{cfg.model.name}",
+        filename="{epoch:02d}-{acc:.4f}",
+        save_top_k=2,
+        mode="max",
     )
 
     total_params = sum(p.numel() for p in model.parameters())

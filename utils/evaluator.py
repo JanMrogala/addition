@@ -223,7 +223,7 @@ class Evaluator:
             print(f"{metric}: {value:.4f}")
         
         # Save results
-        self.save(full_preds, preds_after_delimiter, self.gts, metrics)
+        # self.save(full_preds, preds_after_delimiter, self.gts, metrics)
         
         # Clean up model to free memory
         del self.hf_model

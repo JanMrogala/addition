@@ -15,4 +15,4 @@
 
 singularity exec \
     $SIF \
-    python data_generation/gen_data_sizes.py --format roman
+    python data_generation/gen_multiple.py

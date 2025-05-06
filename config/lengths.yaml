@@ -18,19 +18,19 @@ convert_hf:
 
 wandb:
   # Name your model
-  model_name: "${data.subset}_-${now:%Y-%m-%d_%H-%M-%S}-default_toks" 
+  model_name: "${data.subset}_${data.length}-${now:%Y-%m-%d_%H-%M-%S}-r" 
   # And your project
   proj_name: "ability_transfer"
   num_examples_reported: 100
 
 data:
-  format: addition_binary
-  # length: 25600
-  subset: mix_only/${data.format}
+  format: roman
+  length: 25600
+  subset: lengths_analysis/${data.format}/
   datapath: data
-  train_file: "data/${data.subset}/train.json"
-  # test_files: ["data/${data.subset}/test.json"]
-  test_files: ["data/${data.subset}/test_binary_format.json", "data/${data.subset}/test_original_format.json"]
+  train_file: "data/${data.subset}/${data.length}/train.json"
+  test_files: ["data/${data.subset}/test.json"]
+  # test_files: ["data/${data.subset}/test_hex_format.json", "data/${data.subset}/test_original_format.json"]
   num_workers: 0
 
   # Tokenizer - No need to change.
