@@ -15,7 +15,7 @@ from tokenizers.pre_tokenizers import WhitespaceSplit
 SPECIAL_TOKENS = ["[BOS]", "[PAD]", "[MASK]", "[UNK]", "[EOS]"]
 
 
-@hydra.main(config_path="../config", config_name="base", version_base=None)
+@hydra.main(config_path="../config", config_name="search", version_base=None)
 def main(cfg: DictConfig) -> None:
     """
     Main entry point for tokenizer creation.

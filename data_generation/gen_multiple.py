@@ -16,14 +16,14 @@ if __name__ == "__main__":
     total_test = 1024
 
     # Define all format types to combine with addition (original)
-    formats = ["binary", "hex", "roman"]
+    formats = ["binary", "hex", "roman", "letter"]
 
     # Loop through all format combinations
     for format_type in formats:
         # For each format, create two datasets with swapped ratios
         for primary_format, secondary_format, primary_ratio in [
-            (f"generate_{format_type}_format", "generate_original_format", 0.68),
-            ("generate_original_format", f"generate_{format_type}_format", 0.68)
+            (f"generate_{format_type}_format", "generate_original_format", 0.92),
+            ("generate_original_format", f"generate_{format_type}_format", 0.92)
         ]:
             # Determine directory name based on format combination
             if primary_format.startswith("generate_original"):
@@ -60,4 +60,5 @@ if __name__ == "__main__":
                 # Use a fixed random seed for reproducibility
                 random_seed=42
             )
+            ag.reset_example_registry()
             print(f"Dataset {dir_name} generated successfully.\n")

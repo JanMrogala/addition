@@ -150,6 +150,12 @@ def format_binary(a, b, c):
     
     return input_text, output_text
 
+def remap_binary(input_text, output_text):
+    input_text = input_text.replace("0", "O").replace("1", "I")
+    output_text = output_text.replace("0", "O").replace("1", "I")
+
+    return input_text, output_text
+
 def format_hex(a, b, c):
     """Format addition in hexadecimal format with spaces between tokens, with reversed output"""
     a_hex = int_to_hex_tokens(a)
@@ -374,6 +380,48 @@ def generate_binary_format(num_examples, min_tokens=3, max_tokens=10):
                 can_represent_in_n_binary_digits(b, max_addend_digits)):
                 input_text, output_text = format_binary(a, b, c)
                 
+                examples.append({
+                    "input": input_text,
+                    "output": output_text
+                })
+                found_valid_pair = True
+        
+        if not found_valid_pair:
+            continue
+    
+    return examples
+
+def generate_binary_format_remapped(num_examples, min_tokens=3, max_tokens=10):
+    """Generate examples in binary format."""
+    examples = []
+    
+    while len(examples) < num_examples:
+        target_digits = random.randint(min_tokens, max_tokens)
+        
+        max_sum = 2**target_digits - 1
+        min_sum = 2**(target_digits-1)
+        
+        c = random.randint(min_sum, max_sum)
+        
+        if not has_exactly_n_binary_digits(c, target_digits):
+            continue
+            
+        found_valid_pair = False
+        attempts = 0
+        max_attempts = 100
+        
+        while not found_valid_pair and attempts < max_attempts:
+            attempts += 1
+            
+            a = random.randint(1, c-1)
+            b = c - a
+            
+            max_addend_digits = 10
+            
+            if (can_represent_in_n_binary_digits(a, max_addend_digits) and 
+                can_represent_in_n_binary_digits(b, max_addend_digits)):
+                input_text, output_text = format_binary(a, b, c)
+                input_text, output_text = remap_binary(input_text, output_text)
                 examples.append({
                     "input": input_text,
                     "output": output_text
@@ -619,7 +667,7 @@ def generate_mixed_dataset(
             if callable(test_generators):
                 test_generators = [test_generators]
             
-            for generator in test_generators:
+            for i, generator in enumerate(test_generators):
                 generator_name = generator.__name__.replace("generate_", "")
                 
                 test_examples = _generate_examples(
@@ -631,7 +679,7 @@ def generate_mixed_dataset(
                 )
                 
                 # Save to file with appropriate name
-                test_filename = f"test_{generator_name}.json"
+                test_filename = f"test_{i}.json"
                 with open(os.path.join(output_dir, test_filename), "w") as f:
                     json.dump(test_examples, f, indent=2)
                 

@@ -4,7 +4,7 @@
   "padding": null,
   "added_tokens": [
     {
-      "id": 12,
+      "id": 14,
       "content": "[BOS]",
       "single_word": false,
       "lstrip": false,
@@ -13,7 +13,7 @@
       "special": true
     },
     {
-      "id": 13,
+      "id": 15,
       "content": "[PAD]",
       "single_word": false,
       "lstrip": false,
@@ -22,7 +22,7 @@
       "special": true
     },
     {
-      "id": 14,
+      "id": 16,
       "content": "[MASK]",
       "single_word": false,
       "lstrip": false,
@@ -31,7 +31,7 @@
       "special": true
     },
     {
-      "id": 15,
+      "id": 17,
       "content": "[UNK]",
       "single_word": false,
       "lstrip": false,
@@ -40,7 +40,7 @@
       "special": true
     },
     {
-      "id": 16,
+      "id": 18,
       "content": "[EOS]",
       "single_word": false,
       "lstrip": false,
@@ -58,18 +58,20 @@
   "model": {
     "type": "WordLevel",
     "vocab": {
-      "5": 0,
-      "2": 1,
+      "I": 0,
+      "=": 1,
       "4": 2,
-      "0": 3,
-      "=": 4,
-      "3": 5,
-      "8": 6,
-      "7": 7,
-      "6": 8,
-      "9": 9,
-      "1": 10,
-      "+": 11
+      "+": 3,
+      "7": 4,
+      "2": 5,
+      "O": 6,
+      "3": 7,
+      "9": 8,
+      "1": 9,
+      "0": 10,
+      "6": 11,
+      "5": 12,
+      "8": 13
     },
     "unk_token": "[UNK]"
   }

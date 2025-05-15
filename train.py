@@ -264,7 +264,7 @@ class LitLLM(L.LightningModule):
 
 @hydra.main(
     config_path="config",
-    config_name="lengths",
+    config_name="search",
     version_base=None,
 )
 def main(cfg: DictConfig):

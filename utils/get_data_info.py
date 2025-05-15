@@ -11,7 +11,7 @@ import numpy as np
 
 @hydra.main(
     config_path="../config",
-    config_name="base",
+    config_name="search",
     version_base=None,
 )
 def main(cfg: DictConfig):

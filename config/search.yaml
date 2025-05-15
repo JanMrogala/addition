@@ -18,34 +18,34 @@ convert_hf:
 
 wandb:
   # Name your model
-  model_name: "${data.subset}_-${now:%Y-%m-%d_%H-%M-%S}-default_toks-90:10_5" 
+  model_name: "${data.subset}_-${now:%Y-%m-%d_%H-%M-%S}" 
   # And your project
   proj_name: "ability_transfer"
   num_examples_reported: 100
 
 data:
-  format: addition_letter
-  tok_format: addition_letter
+  format: B
+  tok_format: t_search_post_${data.format}
   # length: 25600
-  subset: mix_only/${data.format}
+  subset: t_search_post/${data.format}
   datapath: data
   train_file: "data/${data.subset}/train.json"
-  # test_files: ["data/${data.subset}/test.json"]
-  test_files: ["data/${data.subset}/test_0.json", "data/${data.subset}/test_1.json"]
+  test_files: ["data/${data.subset}/test.json"]
+  # test_files: ["data/${data.subset}/test_0.json", "data/${data.subset}/test_1.json"]
   num_workers: 0
 
   # Tokenizer - No need to change.
   tokenizer_path: "tokenizer/tokenizer_${data.tok_format}.json"
 
   # No need to change.
-  split_str: "="
+  split_str: "Command:"
 
   # If you want to subsample sets:
   sampling:
     # Set to True if you want to subsample your sets.
     sample_train_set: False
-    sample_test_set: False
-    sample_val_set: False
+    sample_test_set: True
+    sample_val_set: True
 
     # This only applies if the above vars are set to True, otherwise uses all the data!!!
     num_train: 1024
@@ -62,7 +62,7 @@ model:
   batch_size: 1024
   accumulate_grad_batches: 1
   block_size: 64
-  epochs: 6000
+  epochs: 1000
 
   n_layer: 12
   n_head: 8
@@ -72,7 +72,7 @@ optim:
   lr_type: linear-reg # options: linear or linear-reg, 
                     # otherwise cosine decay (lr_type: None)
   lr: 2e-4         # learning rate (used for cosine schedule)
-  warmup_steps: 100
+  warmup_steps: 10
   # n_steps: ${model.epochs}
   weight_decay: 0.01
   max_lr: 0.002
