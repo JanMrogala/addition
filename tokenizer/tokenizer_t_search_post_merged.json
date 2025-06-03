@@ -4,7 +4,7 @@
   "padding": null,
   "added_tokens": [
     {
-      "id": 24,
+      "id": 29,
       "content": "[BOS]",
       "single_word": false,
       "lstrip": false,
@@ -13,7 +13,7 @@
       "special": true
     },
     {
-      "id": 25,
+      "id": 30,
       "content": "[PAD]",
       "single_word": false,
       "lstrip": false,
@@ -22,7 +22,7 @@
       "special": true
     },
     {
-      "id": 26,
+      "id": 31,
       "content": "[MASK]",
       "single_word": false,
       "lstrip": false,
@@ -31,7 +31,7 @@
       "special": true
     },
     {
-      "id": 27,
+      "id": 32,
       "content": "[UNK]",
       "single_word": false,
       "lstrip": false,
@@ -40,7 +40,7 @@
       "special": true
     },
     {
-      "id": 28,
+      "id": 33,
       "content": "[EOS]",
       "single_word": false,
       "lstrip": false,
@@ -58,30 +58,35 @@
   "model": {
     "type": "WordLevel",
     "vocab": {
-      "U": 0,
-      "5": 1,
-      "D": 2,
-      "4": 3,
-      "2": 4,
-      ":": 5,
-      "C": 6,
-      "0": 7,
-      "Init_state:": 8,
-      "TF": 9,
-      "6": 10,
-      "]": 11,
-      "[": 12,
-      "3": 13,
-      "{": 14,
-      "RL": 15,
-      "Command:": 16,
-      "1": 17,
-      "A": 18,
-      "N": 19,
-      "}": 20,
-      "B": 21,
-      "Stack:": 22,
-      ",": 23
+      "{": 0,
+      ",": 1,
+      "U": 2,
+      "9": 3,
+      "4": 4,
+      "TF": 5,
+      ":": 6,
+      "3": 7,
+      "1": 8,
+      "Init_state:": 9,
+      "8": 10,
+      "2": 11,
+      "5": 12,
+      "B": 13,
+      "C": 14,
+      "[": 15,
+      "6": 16,
+      "7": 17,
+      "0": 18,
+      "Stack:": 19,
+      "A": 20,
+      "N": 21,
+      "10": 22,
+      "RL": 23,
+      "Command:": 24,
+      "]": 25,
+      "11": 26,
+      "D": 27,
+      "}": 28
     },
     "unk_token": "[UNK]"
   }

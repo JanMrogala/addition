@@ -18,14 +18,14 @@ convert_hf:
 
 wandb:
   # Name your model
-  model_name: "${data.subset}_-${now:%Y-%m-%d_%H-%M-%S}" 
+  model_name: "${data.subset}_-${now:%Y-%m-%d_%H-%M-%S}_${data.sampling.num_train}_256bs" 
   # And your project
   proj_name: "ability_transfer"
   num_examples_reported: 100
 
 data:
   format: B
-  tok_format: t_search_post_${data.format}
+  tok_format: t_search_post_merged
   # length: 25600
   subset: t_search_post/${data.format}
   datapath: data
@@ -43,7 +43,7 @@ data:
   # If you want to subsample sets:
   sampling:
     # Set to True if you want to subsample your sets.
-    sample_train_set: False
+    sample_train_set: True
     sample_test_set: True
     sample_val_set: True
 
@@ -59,9 +59,9 @@ data:
 model:
   name: ${wandb.model_name}
 
-  batch_size: 1024
+  batch_size: 128
   accumulate_grad_batches: 1
-  block_size: 64
+  block_size: 256
   epochs: 1000
 
   n_layer: 12
