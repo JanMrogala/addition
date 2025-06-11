@@ -1,6 +1,6 @@
-samples=50000
-num_of_chains=20
-num_of_nodes=20
+samples=100
+num_of_chains=4
+num_of_nodes=3
 max_rules=2
 cross_ratio1=0.5
 
@@ -30,11 +30,17 @@ function run_cbg_pipeline {
 
     python data_generation/4_convert_to_json.py
 
-    zip data/${out_name} data/*.json
+    # move files to directory
+    mkdir -p data/t_search/$out_name
+    mv data/*.json data/t_search/$out_name
 }
 
 # Call the function with the parameters
-run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata1.pkl" "automata1.zip"
-run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata2.pkl" "automata2.zip"
-run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "res_G.pkl" "res_G.zip"
+run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata1.pkl" "A"
+run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata2.pkl" "B"
+run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "res_G.pkl" "C"
+
+python data_generation/t_postprocess.py
+
+python utils/create_tokenizer.py
 
