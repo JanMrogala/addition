@@ -3,6 +3,7 @@ import json
 import os
 
 temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "temp")
+data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 print("Start conversion.")
 
@@ -33,13 +34,13 @@ test = convert_to_json_format(te)
 train = convert_to_json_format(tr)
 test_first = convert_to_json_format(trf)
 
-with open('../../data/test.json', 'w') as f:
+with open(f'{data_dir}/test.json', 'w') as f:
     json.dump(test, f, indent=2)
 
-with open('../../data/train.json', 'w') as f:
+with open(f'{data_dir}/train.json', 'w') as f:
     json.dump(train, f, indent=2)
 
-with open('../../data/test_only_first.json', 'w') as f:  
+with open(f'{data_dir}/test_only_first.json', 'w') as f:  
     json.dump(test_first, f, indent=2)
 
 print("Done conversion.")

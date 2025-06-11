@@ -10,15 +10,12 @@ from itertools import product
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--path", type=str, default="../../data/automata1.pkl", help="Path to the chains to make samples from")
+parser.add_argument("--file_name", type=str, default="automata1.pkl", help="Path to the chains to make samples from")
 parser.add_argument("--num_of_samples", type=int, default=50000, help="Total number of samples to generate")
 
 args = parser.parse_args()
 
-# generate n chains of length m, where n and m are given by the user, default n = 5, m = 10
-# add dependencies on the edges such that the edge of one chain depends on the states of later chains (not the previous ones in the fixed order)
-# the number of states on which a given edge depends is chosen uniformly from {0,1, 2, 3}..if there are multiple states, they need to be from different chains.
-
+data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 def get_sample(vector, graphs):
     num_states = len(graphs[0].nodes())
@@ -261,7 +258,7 @@ def parse_log(log):
 
 # chains = add_enabling(gen_chains())
 # load chains from pickle file named res_G.pkl
-with open(args.path, "rb") as f:
+with open(f"{data_dir}/{args.file_name}", "rb") as f:
     chains = pickle.load(f)
 
 amplitude = 0
@@ -273,7 +270,7 @@ for i in range(1, 100):
         break
 
 vecs = get_vectors(chains, amplitude)
-print(len(vecs))
+# print(len(vecs))
 
 id_2_vec = {}
 vec_2_id = {}

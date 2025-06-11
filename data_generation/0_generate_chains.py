@@ -5,6 +5,7 @@ import random
 import pickle
 import argparse
 import copy
+import os
 
 # add command line arguments
 parser = argparse.ArgumentParser(description='Generate chains with dependencies.')
@@ -17,6 +18,11 @@ args = parser.parse_args()
 n = args.n
 m = args.m
 max_rules = args.max_rules
+
+data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
+    print(f"Created directory: {data_dir}")
 
 def gen_chains(n=n, m=m):
     chains = defaultdict(list)
@@ -110,7 +116,7 @@ def crossbreed(chain1, chain2, chain1_ratio=0.5):
 
     counter = int((n-1) * chain1_ratio)
     initial_counter = counter
-    print(f"Initial counter: {initial_counter}, Counter: {counter}")
+    # print(f"Initial counter: {initial_counter}, Counter: {counter}")
     chain_num = 0
     next_automata_id_start = 0
     for i in range(1, n):
@@ -119,7 +125,7 @@ def crossbreed(chain1, chain2, chain1_ratio=0.5):
             counter = (n-1) - initial_counter
             next_automata_id_start = i
         res_graph[i] = chains[chain_num][n - counter]
-        print(f"res_graph[{i}] = chains[{chain_num}][{n  - counter}]")
+        # print(f"res_graph[{i}] = chains[{chain_num}][{n  - counter}]")
         counter -= 1
     
     random_edge1 = random.randint(0, m-2)
@@ -154,13 +160,13 @@ res_G = crossbreed(automata1, automata2, chain1_ratio)
 
 add_list_to_edges(res_G)
 
-with open('../../data/automata1.pkl', 'wb') as f:
+with open(f'{data_dir}/automata1.pkl', 'wb') as f:
     pickle.dump(automata1_cpy, f)
 
-with open('../../data/automata2.pkl', 'wb') as f:
+with open(f'{data_dir}/automata2.pkl', 'wb') as f:
     pickle.dump(automata2_cpy, f)
 
-with open('../../data/res_G.pkl', 'wb') as f:
+with open(f'{data_dir}/res_G.pkl', 'wb') as f:
     pickle.dump(res_G, f)
 
 
