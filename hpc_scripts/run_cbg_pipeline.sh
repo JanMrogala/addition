@@ -42,5 +42,7 @@ run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 
 
 python data_generation/t_postprocess.py
 
-python utils/create_tokenizer.py
+# python utils/create_tokenizer.py
+
+# python utils/validate_generated_data.py
 
