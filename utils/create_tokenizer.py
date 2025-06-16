@@ -81,10 +81,10 @@ def get_vocab(cfg: DictConfig) -> Set[str]:
     Returns:
         Set of unique tokens for vocabulary.
     """
-    # Load training data
-    train_data = _load_json_file(cfg.data.train_file)
-    
-    # Load data from all test files
+    train_data = []
+    for train_file in cfg.data.train_files:
+        train_data.extend(_load_json_file(train_file))
+
     test_data = []
     for test_file in cfg.data.test_files:
         test_data.extend(_load_json_file(test_file))

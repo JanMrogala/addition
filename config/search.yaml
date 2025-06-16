@@ -30,7 +30,10 @@ data:
   subset: t_search_post/${data.format}
   datapath: data
   train_file: "data/${data.subset}/train.json"
-  test_files: ["data/${data.subset}/test.json"]
+  # test_files: ["data/${data.subset}/test.json"]
+
+  train_files: ["data/t_search_post/A/train.json", "data/t_search_post/B/train.json", "data/t_search_post/C/train.json"]
+  test_files: ["data/t_search_post/A/test.json", "data/t_search_post/B/test.json", "data/t_search_post/C/test.json"]
   # test_files: ["data/${data.subset}/test_0.json", "data/${data.subset}/test_1.json"]
   num_workers: 0
 
