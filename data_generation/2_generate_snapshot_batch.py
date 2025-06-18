@@ -8,6 +8,7 @@ import argparse
 # add command line arguments
 parser = argparse.ArgumentParser(description='Generate chains with dependencies.')
 parser.add_argument('--max_nodes', type=int, default=12, help='Number of nodes.')
+parser.add_argument('--max_rules', type=int, default=2, help='Number of rules.')
 args = parser.parse_args()
 
 def generate_snapshots(element):
@@ -108,7 +109,7 @@ def generate_snapshots(element):
             dict_str = op[2:].strip()
             try:
                 new_pair = ast.literal_eval(dict_str)
-                if not isinstance(new_pair, dict) or not (1 <= len(new_pair) <= 2):
+                if not isinstance(new_pair, dict) or not (1 <= len(new_pair) <= args.max_rules):
                     print("Error: N operation dictionary must contain one or two key-value pairs.")
                     print(new_pair)
                     break
