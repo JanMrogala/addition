@@ -1,7 +1,7 @@
 samples=100
-num_of_chains=4
-num_of_nodes=3
-max_rules=2
+num_of_chains=10
+num_of_nodes=10
+max_rules=5
 cross_ratio1=0.5
 
 function run_cbg_pipeline {
@@ -25,6 +25,7 @@ function run_cbg_pipeline {
 
     python data_generation/2_generate_snapshot_batch.py \
         --max_nodes $num_of_nodes \
+        --max_rules $max_rules \
 
     python data_generation/3_generate_data.py
 
