@@ -52,7 +52,7 @@ data:
     sample_val_set: True
 
     # This only applies if the above vars are set to True, otherwise uses all the data!!!
-    num_train: 20480
+    num_train: 50000
     num_val: 128
     num_test: 128
 

@@ -47,7 +47,6 @@ def convert_litgpt_to_hf(cfg):
     return hf_model
 
 
-# Full problem evaluation functions (adapted from evaluate_batch.py)
 def parse_data_string(data_str: str):
     """
     Parse a string of the form:
@@ -470,7 +469,7 @@ class Evaluator:
         with open(results_file, "w") as f:
             json.dump(results, f, indent=4)
 
-    def evaluate(self, run_full_problem_eval: bool = True): # Modified line
+    def evaluate(self, run_full_problem_eval: bool = True):
         # Get single-step predictions
         full_preds, preds_after_delimiter = self.get_preds()
         
