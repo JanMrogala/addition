@@ -52,7 +52,7 @@ data:
     sample_val_set: True
 
     # This only applies if the above vars are set to True, otherwise uses all the data!!!
-    num_train: 10240
+    num_train: 20480
     num_val: 128
     num_test: 128
 
@@ -75,8 +75,8 @@ model:
 optim:
   lr_type: None # options: linear or linear-reg, 
                     # otherwise cosine decay (lr_type: None)
-  lr: 0.001         # learning rate (used for cosine schedule)
-  warmup_steps: 5000
+  lr: 0.003         # learning rate (used for cosine schedule)
+  warmup_steps: 3000
   # n_steps: ${model.epochs}
   weight_decay: 0.01
   max_lr: 0.002

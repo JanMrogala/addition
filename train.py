@@ -46,7 +46,8 @@ class LitLLM(L.LightningModule):
         if hasattr(cfg.data, 'test_files'):
             filtered_test_files = [f for f in cfg.data.test_files if any(f"/{fmt}/" in f for fmt in ["A", "B", "C"])]
             for test_file in filtered_test_files:
-                base_name = os.path.splitext(os.path.basename(test_file))[0]
+                base_name = os.path.basename(os.path.dirname(test_file))
+                
                 self.dataset_names.append(base_name)
         
         # For tracking combined validation metrics
@@ -143,10 +144,14 @@ class LitLLM(L.LightningModule):
         self.llm.save(save_path)
         self.llm.model.to(self.device)
         
-        # Run evaluation on each dataset
-        self.run_evaluation()
+        # Run normal evaluation (single-step metrics) every epoch
+        self.run_evaluation(run_full_problem_eval=False)
+        
+        # Run full problem evaluation only every 10 epochs
+        if (self.current_epoch + 1) % 10 == 0:
+            self.run_evaluation(run_full_problem_eval=True)
     
-    def run_evaluation(self):
+    def run_evaluation(self, run_full_problem_eval: bool = True): # Modified line
         """Run evaluation on each dataset and log metrics."""
         # Evaluate on each dataset separately
         for dataset_idx, dataset_name in enumerate(self.dataset_names):
@@ -172,20 +177,22 @@ class LitLLM(L.LightningModule):
                     self.llm.model,
                 )
                 
-                # Get metrics dictionary from evaluator
-                metrics = evaluator.evaluate()
+                # Get metrics dictionary from evaluator, passing the flag
+                metrics = evaluator.evaluate(run_full_problem_eval=run_full_problem_eval)
                 
                 # Log all metrics to wandb/Lightning with dataset prefix
                 for metric_name, value in metrics.items():
+                    # Prefix for logging based on whether it's full problem eval or normal eval
+                    log_prefix = "FullProblem" if "full_problem_accuracy" in metric_name else "Evaluation"
                     self.log(
-                        f"Evaluation/{dataset_name}/{metric_name}",
+                        f"{log_prefix}/{dataset_name}/{metric_name}",
                         value,
                         on_epoch=True,
                         prog_bar=False,
                         sync_dist=True,
                     )
                 
-                # Special logging for full problem accuracy to make it more visible
+                # Special logging for full problem accuracy to make it more visible (if present)
                 if "full_problem_accuracy" in metrics:
                     self.log(
                         f"FullProblem/{dataset_name}/accuracy",

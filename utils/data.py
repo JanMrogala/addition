@@ -98,17 +98,20 @@ def get_data(cfg: DictConfig, tokenizer, for_info=False):
     test_files = [f for f in all_test_files if any(f"/{fmt}/" in f for fmt in ["A", "B", "C"])]
     all_test_full_files = [to_absolute_path(test_file) for test_file in cfg.data.test_full_files]
     test_full_files = [f for f in all_test_full_files if any(f"/{fmt}/" in f for fmt in ["A", "B", "C"])]
+
     # Add each test file as both a validation and test dataset with a unique name
     for idx, test_file in enumerate(test_files):
-        # Extract the base name of the file (without directory and extension)
-        base_name = os.path.splitext(os.path.basename(test_file))[0]
+
+        base_name = os.path.basename(os.path.dirname(test_file))
+
         # Use the base name as part of the dataset key
         data_files[f"val_{base_name}"] = test_file
         data_files[f"test_{base_name}"] = test_file
     
     for idx, test_full_file in enumerate(test_full_files):
-        base_name = os.path.splitext(os.path.basename(test_full_file))[0]
+        base_name = os.path.basename(os.path.dirname(test_full_file))
         data_files[f"test_full_{base_name}"] = test_full_file
+
     # Load the datasets
     hf_dataset = load_dataset("json", data_files=data_files)
     

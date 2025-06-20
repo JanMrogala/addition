@@ -54,7 +54,7 @@ def parse_data_string(data_str: str):
       Init_state: [ 0 : 6 , 1 : 5 , ... ] Stack: [  { 0 : 2 } , { 1 : 3 , 2 : 5 } ]
     into:
       init_state = {0: 6, 1: 5, ...}
-      stack = [ {0: 2}, {1: 3, 2: 5}, ...]
+      stack = [ {0: 2}, {1: 3}, ...]
     """
     # --- Extract the init_state portion
     init_pat = r"Init_state:\s*\[(.*?)\]"
@@ -104,7 +104,7 @@ def cleanup_stack(stack: List[Dict[int,int]]):
         stack.pop(0)
 
 
-def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]]):
+def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]], prompt):
     """
     Apply a command to init_state & stack.
     This includes:
@@ -129,7 +129,7 @@ def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]]
             if init_state[automat_index] < 12:
                 init_state[automat_index] += 1
             else:
-                print(f"Warning: Automat {automat_index} is already at max 6.")
+                print(f"Warning: Automat {automat_index} is already at max 12.")
         return
 
     # TF (Take First)
@@ -172,8 +172,8 @@ def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]]
         from collections import OrderedDict
         try:
             new_pair = ast.literal_eval(dict_str)
-            if not isinstance(new_pair, dict) or not (1 <= len(new_pair) <= 2):
-                print("Warning: N operation requires 1-2 key-value pairs.")
+            if not isinstance(new_pair, dict) or not (1 <= len(new_pair) <= 12):
+                print("Warning: N operation requires 1-10 key-value pairs.")
                 return
             cleanup_stack(stack)
             # Insert a new OrderedDict at the beginning
@@ -183,10 +183,13 @@ def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]]
         return
 
     # If we get here, we have an unknown operation
+
+    print(f"init_state: {init_state}")
+    print(f"stack: {stack}")
     print(f"Warning: Unknown operation '{op}'.")
 
 
-def generate_command_for_full_eval(model, tokenizer, prompt: str, max_length=128) -> str:
+def generate_command_for_full_eval(model, tokenizer, prompt: str, max_length=256) -> str:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
 
@@ -207,7 +210,7 @@ def generate_command_for_full_eval(model, tokenizer, prompt: str, max_length=128
 
     # Decode
     full_text = tokenizer.decode(outputs[0], skip_special_tokens=False)
-    generated = full_text[len(prompt):].strip()
+    generated = full_text[len(prompt)-1:].strip()
     return generated
 
 
@@ -258,14 +261,17 @@ def evaluate_full_problem(input_text: str, model, tokenizer, max_iters: int = 20
     for i in range(max_iters):
         current_data_str = data_to_string(current_init_state, current_stack)
         bos = getattr(tokenizer, "bos_token", "")
-        # Include the automata prefix in the prompt to match training format
-        prompt = f"{bos} {automata_prefix}{current_data_str} Command:"
+        prompt = f"{bos} {automata_prefix} {current_data_str} Command:"
         command_pred = generate_command_for_full_eval(model, tokenizer, prompt)
-        command_pred = command_pred.replace("[EOS]", "").strip()
-        apply_command(command_pred, current_init_state, current_stack)
+        print("command_pred pre split: ", command_pred)
+
+        command_pred = command_pred.split('[EOS]')[0].strip()
+        print("command_pred post split: ", command_pred)
+        apply_command(command_pred, current_init_state, current_stack, prompt)
         if current_init_state == target_dict:
             return True
-
+    print("Current init state:", current_init_state)
+    print("Target dict:", target_dict)
     return False
 
 
@@ -464,7 +470,7 @@ class Evaluator:
         with open(results_file, "w") as f:
             json.dump(results, f, indent=4)
 
-    def evaluate(self):
+    def evaluate(self, run_full_problem_eval: bool = True): # Modified line
         # Get single-step predictions
         full_preds, preds_after_delimiter = self.get_preds()
         
@@ -475,14 +481,11 @@ class Evaluator:
         # Calculate single-step metrics
         step_metrics = self.calculate_metrics(preds_after_delimiter, self.gts)
         
-        # Evaluate full problems
-        full_problem_accuracy = self.evaluate_full_problems()
-        
-        # Combine all metrics
-        metrics = {
-            **step_metrics,
-            "full_problem_accuracy": full_problem_accuracy
-        }
+        # Evaluate full problems conditionally
+        metrics = {**step_metrics} # Initialize metrics with single-step ones
+        if run_full_problem_eval: # Modified line
+            full_problem_accuracy = self.evaluate_full_problems()
+            metrics["full_problem_accuracy"] = full_problem_accuracy # Only add if run
         
         # Print metrics
         print("\nEvaluation Metrics:")
