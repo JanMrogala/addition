@@ -1,8 +1,9 @@
 samples=100
-num_of_chains=10
-num_of_nodes=10
-max_rules=5
+# num_of_chains=5
+# num_of_nodes=5
+# max_rules=4
 cross_ratio1=0.5
+
 
 function run_cbg_pipeline {
     local samples=$1
@@ -36,14 +37,43 @@ function run_cbg_pipeline {
     mv data/*.json data/t_search/$out_name
 }
 
-# Call the function with the parameters
-run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata1.pkl" "A"
-run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata2.pkl" "B"
-run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "res_G.pkl" "C"
+for chains in {8..10}
+do
 
-python data_generation/t_postprocess.py
+    for nodes in {8..10}
+    do
 
-python utils/create_tokenizer.py
+        for rule in {2..4}
+        do
 
-python utils/validate_generated_data.py
+        start_time=$(date +%s)
+
+        # Call the function with the parameters
+        run_cbg_pipeline $samples $chains $nodes $rule $cross_ratio1 "automata1.pkl" "A"
+        run_cbg_pipeline $samples $chains $nodes $rule $cross_ratio1 "automata2.pkl" "B"
+        run_cbg_pipeline $samples $chains $nodes $rule $cross_ratio1 "res_G.pkl" "C"
+
+        python data_generation/t_postprocess.py
+
+        python utils/create_tokenizer.py
+
+        python utils/validate_generated_data.py
+
+        python data_generation/t_postprocess.py
+
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+
+        python utils/statistics.py \
+            --num_of_samples $samples \
+            --num_of_chains $chains \
+            --num_of_nodes $nodes \
+            --max_rules $rule \
+            --duration $duration
+
+        done
+
+    done
+
+done
 
