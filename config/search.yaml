@@ -18,13 +18,13 @@ convert_hf:
 
 wandb:
   # Name your model
-  model_name: "${data.subset}_-${now:%Y-%m-%d_%H-%M-%S}_${data.sampling.num_train}_256bs" 
+  model_name: "${data.subset}_-${now:%Y-%m-%d_%H-%M-%S}_${data.sampling.num_train}" 
   # And your project
   proj_name: "ability_transfer"
   num_examples_reported: 100
 
 data:
-  format: B
+  format: A
   tok_format: t_search_post_merged
   # length: 25600
   subset: t_search_post/${data.format}
@@ -51,7 +51,7 @@ data:
     sample_val_set: True
 
     # This only applies if the above vars are set to True, otherwise uses all the data!!!
-    num_train: 1024
+    num_train: 10240
     num_val: 1024
     num_test: 1024
 
@@ -65,7 +65,7 @@ model:
   batch_size: 128
   accumulate_grad_batches: 1
   block_size: 256
-  epochs: 1000
+  epochs: 500
 
   n_layer: 12
   n_head: 8

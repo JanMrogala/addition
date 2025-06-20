@@ -1,7 +1,7 @@
 import pickle
 import random
 import os
-
+import ast
 
 temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "temp")
 
@@ -33,9 +33,17 @@ print(f"Train snapshots: {len(train_snapshots)} ({len(train_snapshots)/len(snaps
 print("\nFirst 2 test examples:")
 
 def tokenize_command(command):
-    if command[0] == 'N':
-        command = 'N { ' + ' , '.join([p.strip()[0] + " : " + p.strip()[3] for p in command[3:-1].split(',')]) + ' }'
+    if command.startswith('N '):
+        dict_str = command[2:].strip()
+        try:
+            parsed_dict = ast.literal_eval(dict_str)
+            formatted_pairs = [f"{k} : {v}" for k, v in parsed_dict.items()]
+            command = f'N {{ {" , ".join(formatted_pairs)} }}'
+        except Exception as e:
+            print(f"Warning: Failed to parse N command '{command}': {e}")
+            pass
     return command
+
 def get_tokens(snapshots,i,j):
     tokens = "Init_state: [ "
     for k,v in snapshots[i][j]['init_state'].items():

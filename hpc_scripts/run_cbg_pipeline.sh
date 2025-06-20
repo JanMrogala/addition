@@ -37,13 +37,13 @@ function run_cbg_pipeline {
     mv data/*.json data/t_search/$out_name
 }
 
-for chains in {8..10}
+for chains in {12..12}
 do
 
-    for nodes in {8..10}
+    for nodes in {12..12}
     do
 
-        for rule in {2..4}
+        for rule in {3..3}
         do
 
         start_time=$(date +%s)
