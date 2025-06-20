@@ -34,6 +34,7 @@ data:
 
   train_files: ["data/t_search_post/A/train.json", "data/t_search_post/B/train.json", "data/t_search_post/C/train.json"]
   test_files: ["data/t_search_post/A/test.json", "data/t_search_post/B/test.json", "data/t_search_post/C/test.json"]
+  test_full_files: ["data/t_search_post/A/test_only_first.json", "data/t_search_post/B/test_only_first.json", "data/t_search_post/C/test_only_first.json"]
   # test_files: ["data/${data.subset}/test_0.json", "data/${data.subset}/test_1.json"]
   num_workers: 0
 
@@ -52,8 +53,8 @@ data:
 
     # This only applies if the above vars are set to True, otherwise uses all the data!!!
     num_train: 10240
-    num_val: 1024
-    num_test: 1024
+    num_val: 128
+    num_test: 128
 
   # If you want to filter data (use utils/filter_data.py), otherwise unused.
   filter:
@@ -72,10 +73,10 @@ model:
   n_embd: 128
 
 optim:
-  lr_type: linear-reg # options: linear or linear-reg, 
+  lr_type: None # options: linear or linear-reg, 
                     # otherwise cosine decay (lr_type: None)
-  lr: 2e-4         # learning rate (used for cosine schedule)
-  warmup_steps: 10
+  lr: 0.001         # learning rate (used for cosine schedule)
+  warmup_steps: 5000
   # n_steps: ${model.epochs}
   weight_decay: 0.01
   max_lr: 0.002

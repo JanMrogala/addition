@@ -44,7 +44,8 @@ class LitLLM(L.LightningModule):
         # Store dataset names for validation reporting
         self.dataset_names = []
         if hasattr(cfg.data, 'test_files'):
-            for test_file in cfg.data.test_files:
+            filtered_test_files = [f for f in cfg.data.test_files if any(f"/{fmt}/" in f for fmt in ["A", "B", "C"])]
+            for test_file in filtered_test_files:
                 base_name = os.path.splitext(os.path.basename(test_file))[0]
                 self.dataset_names.append(base_name)
         
@@ -151,15 +152,20 @@ class LitLLM(L.LightningModule):
         for dataset_idx, dataset_name in enumerate(self.dataset_names):
             # Get the appropriate test dataset
             test_key = f"test_{dataset_name}"
+            test_full_key = f"test_full_{dataset_name.replace('test', 'test_only_first')}"  # Adjust key name
             if test_key in self.trainer.datamodule.dataset:
                 test_data = self.trainer.datamodule.dataset[test_key]
                 
+                test_full_data = None
+                if test_full_key in self.trainer.datamodule.dataset:
+                    test_full_data = self.trainer.datamodule.dataset[test_full_key]
                 print(f"Running evaluation on dataset: {dataset_name}")
                 
                 # Evaluate the model on this dataset
                 evaluator = Evaluator(
                     self.cfg,
                     test_data,
+                    test_full_data,
                     self.preprocessor.tokenizer,
                     self.cfg.data.split_str,
                     self.global_step,
@@ -249,19 +255,32 @@ class LitLLM(L.LightningModule):
             
             return [optimizer], [scheduler]
         else:
-            # n_steps = self.cfg.optim.n_steps
             n_steps = self.cfg.model.epochs * self.train_batches
             warmup_steps = self.cfg.optim.warmup_steps
 
             optimizer = torch.optim.AdamW(
                 self.llm.model.parameters(), lr=self.cfg.optim.lr, weight_decay=self.cfg.optim.weight_decay, betas=(0.9, 0.95)
             )
+            
+            # Warmup scheduler
+            warmup_scheduler = torch.optim.lr_scheduler.LinearLR(
+                optimizer, start_factor=1e-6, total_iters=warmup_steps
+            )
+            
+            # Cosine scheduler with minimum at 0.5 * initial_lr
+            cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, T_max=n_steps - warmup_steps, eta_min=self.cfg.optim.lr * 0.3
+            )
+            
+            # Combine them
+            combined_scheduler = torch.optim.lr_scheduler.SequentialLR(
+                optimizer, 
+                schedulers=[warmup_scheduler, cosine_scheduler],
+                milestones=[warmup_steps]
+            )
+            
             scheduler = {
-                "scheduler": get_cosine_schedule_with_warmup(
-                    optimizer,
-                    num_warmup_steps=warmup_steps,
-                    num_training_steps=n_steps,
-                ),
+                "scheduler": combined_scheduler,
                 "interval": "step",
             }
             return [optimizer], [scheduler]

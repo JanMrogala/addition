@@ -94,8 +94,10 @@ def get_data(cfg: DictConfig, tokenizer, for_info=False):
     data_files = {"train": train_file}
     
     # Get test files and create dataset names
-    test_files = [to_absolute_path(test_file) for test_file in cfg.data.test_files]
-    
+    all_test_files = [to_absolute_path(test_file) for test_file in cfg.data.test_files]
+    test_files = [f for f in all_test_files if any(f"/{fmt}/" in f for fmt in ["A", "B", "C"])]
+    all_test_full_files = [to_absolute_path(test_file) for test_file in cfg.data.test_full_files]
+    test_full_files = [f for f in all_test_full_files if any(f"/{fmt}/" in f for fmt in ["A", "B", "C"])]
     # Add each test file as both a validation and test dataset with a unique name
     for idx, test_file in enumerate(test_files):
         # Extract the base name of the file (without directory and extension)
@@ -104,6 +106,9 @@ def get_data(cfg: DictConfig, tokenizer, for_info=False):
         data_files[f"val_{base_name}"] = test_file
         data_files[f"test_{base_name}"] = test_file
     
+    for idx, test_full_file in enumerate(test_full_files):
+        base_name = os.path.splitext(os.path.basename(test_full_file))[0]
+        data_files[f"test_full_{base_name}"] = test_full_file
     # Load the datasets
     hf_dataset = load_dataset("json", data_files=data_files)
     
@@ -113,7 +118,10 @@ def get_data(cfg: DictConfig, tokenizer, for_info=False):
     
     # Apply sampling to all test and validation datasets
     for key in hf_dataset.keys():
-        if key.startswith("test_") and cfg.data.sampling.sample_test_set:
+        if key.startswith("test_full_"):
+    # Keep all samples for full problem evaluation
+            continue
+        elif key.startswith("test_") and cfg.data.sampling.sample_test_set:
             hf_dataset[key] = hf_dataset[key].select(range(int(cfg.data.sampling.num_test)))
         elif key.startswith("val_") and cfg.data.sampling.sample_val_set:
             hf_dataset[key] = hf_dataset[key].select(range(int(cfg.data.sampling.num_val)))
@@ -121,13 +129,19 @@ def get_data(cfg: DictConfig, tokenizer, for_info=False):
     def tokenize(examples):
         # Format input and output with delimiter between them
         texts = []
+        has_output = "output" in examples and examples["output"][0] is not None
+        
         for i in range(len(examples["input"])):
             input_text = examples["input"][i]
-            output_text = examples["output"][i]
             
-            # Use the split_str as a delimiter between input and output
-            # This will be used for masking during training
-            full_text = tokenizer.bos_token + " " + input_text + " " + cfg.data.split_str + " " + output_text + " " + tokenizer.eos_token
+            if has_output:
+                # Regular test files: input + split_str + output
+                output_text = examples["output"][i]
+                full_text = tokenizer.bos_token + " " + input_text + " " + cfg.data.split_str + " " + output_text + " " + tokenizer.eos_token
+            else:
+                # Full test files: just input + split_str (no output)
+                full_text = tokenizer.bos_token + " " + input_text + " " + cfg.data.split_str
+                
             texts.append(full_text)
         
         outputs = tokenizer(
@@ -140,8 +154,13 @@ def get_data(cfg: DictConfig, tokenizer, for_info=False):
         return {"input_ids": outputs["input_ids"]}
 
     # Remove both "input" and "output" columns after tokenization
+    # Remove columns after tokenization - handle both cases
+    columns_to_remove = ["input"]
+    if "output" in hf_dataset[list(hf_dataset.keys())[0]].column_names:
+        columns_to_remove.append("output")
+
     tokenized_dataset = hf_dataset.map(
-        tokenize, batched=True, remove_columns=["input", "output"]
+        tokenize, batched=True, remove_columns=columns_to_remove
     )
 
     return tokenized_dataset

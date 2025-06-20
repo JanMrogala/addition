@@ -37,6 +37,11 @@ def process_json_file(input_file, output_file, folder_letter):
             }
             
             transformed_data.append(transformed_item)
+        else:
+            transformed_item = {
+                "input": f"{folder_letter} {text}",
+            }
+            transformed_data.append(transformed_item)
     
     # Save the transformed data to the output file
     os.makedirs(os.path.dirname(output_file), exist_ok=True)

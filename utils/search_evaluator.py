@@ -26,7 +26,6 @@ from typing import List, Dict, Any
 
 
 def convert_litgpt_to_hf(cfg):
-
     out_dir = Path(cfg.convert_hf.out_path)
     out_dir.mkdir(parents=True, exist_ok=True)
     source_dir = Path(cfg.convert_hf.in_path)
@@ -127,7 +126,7 @@ def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]]
             else:
                 print(f"Warning: Automat {automat_index} is already at 0.")
         elif direction == "U":
-            if init_state[automat_index] < 6:
+            if init_state[automat_index] < 12:
                 init_state[automat_index] += 1
             else:
                 print(f"Warning: Automat {automat_index} is already at max 6.")
@@ -219,9 +218,11 @@ def evaluate_full_problem(input_text: str, model, tokenizer, max_iters: int = 20
     within max_iters, False otherwise.
     """
     try:
-        # Remove automata prefix (A, B, or C) from the beginning
+        # Extract automata prefix (A, B, or C) from the beginning and keep it
+        automata_prefix = ""
         if input_text.startswith(('A ', 'B ', 'C ')):
-            data_str = input_text[2:]  # Remove the prefix and space
+            automata_prefix = input_text[:2]  # Keep "A ", "B ", or "C "
+            data_str = input_text[2:]  # Remove the prefix and space for parsing
         else:
             data_str = input_text
             
@@ -257,7 +258,8 @@ def evaluate_full_problem(input_text: str, model, tokenizer, max_iters: int = 20
     for i in range(max_iters):
         current_data_str = data_to_string(current_init_state, current_stack)
         bos = getattr(tokenizer, "bos_token", "")
-        prompt = f"{bos} {current_data_str} Command:"
+        # Include the automata prefix in the prompt to match training format
+        prompt = f"{bos} {automata_prefix}{current_data_str} Command:"
         command_pred = generate_command_for_full_eval(model, tokenizer, prompt)
         command_pred = command_pred.replace("[EOS]", "").strip()
         apply_command(command_pred, current_init_state, current_stack)
@@ -268,11 +270,12 @@ def evaluate_full_problem(input_text: str, model, tokenizer, max_iters: int = 20
 
 
 class Evaluator:
-    def __init__(self, config, test_set, tokenizer, split_str, step=None, model=None):
+    def __init__(self, config, test_set, test_full_data, tokenizer, split_str, step=None, model=None):
         self.config = config
         self.num_examples = config.eval.num_examples
         self.batch_size = config.eval.batch_size
         self.global_step = step
+        self.test_full_data = test_full_data
         self.tokenizer = tokenizer
         self.results_dir = config.eval.results_dir
         self.model = model
@@ -381,19 +384,23 @@ class Evaluator:
         correct = 0
         total = 0
         
-        print(f"Evaluating {len(self.test_set)} full problems...")
+        print(f"Evaluating {len(self.test_full_data)} full problems...")
         
-        for sample in self.test_set:
+        for sample in self.test_full_data:
             # Get the original input text (before tokenization)
             input_ids = sample["input_ids"]
             # Decode the full input to get the original text
             full_text = self.tokenizer.decode(input_ids, skip_special_tokens=True)
             
-            # Extract just the problem part (before "Command:")
-            if "Command:" in full_text:
-                input_text = full_text.split("Command:")[0].strip()
+            # Extract just the problem part (before the split_str delimiter)
+            if self.split_str in full_text:
+                input_text = full_text.split(self.split_str)[0].strip()
             else:
-                input_text = full_text
+                # Fallback: if split_str not found, try "Command:" for backward compatibility
+                if "Command:" in full_text:
+                    input_text = full_text.split("Command:")[0].strip()
+                else:
+                    input_text = full_text
             
             try:
                 result = evaluate_full_problem(input_text, self.hf_model, self.tokenizer, max_iters=130)
