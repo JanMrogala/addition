@@ -10,7 +10,7 @@ from config import hf_config
 from lightning.pytorch.loggers import WandbLogger
 from omegaconf import DictConfig, OmegaConf
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
-from utils.evaluator import Evaluator
+from utils.search_evaluator import Evaluator
 from litgpt.config import configs, Config, name_to_config
 from litgpt.model import GPT
 from litgpt.api import Preprocessor
@@ -176,6 +176,16 @@ class LitLLM(L.LightningModule):
                         value,
                         on_epoch=True,
                         prog_bar=False,
+                        sync_dist=True,
+                    )
+                
+                # Special logging for full problem accuracy to make it more visible
+                if "full_problem_accuracy" in metrics:
+                    self.log(
+                        f"FullProblem/{dataset_name}/accuracy",
+                        metrics["full_problem_accuracy"],
+                        on_epoch=True,
+                        prog_bar=True,
                         sync_dist=True,
                     )
                 
