@@ -64,7 +64,7 @@ do
         end_time=$(date +%s)
         duration=$((end_time - start_time))
 
-        python utils/statistics.py \
+        python utils/search_statistics.py \
             --num_of_samples $samples \
             --num_of_chains $chains \
             --num_of_nodes $nodes \
