@@ -30,24 +30,10 @@ def filter_data(data, tokenizer):
         input_ids = get_input_ids(item['text'], tokenizer)
         res.append(input_ids)
 
-
-    # duplicate_idxs = []
-    # spacer = 1
-    # for x, i in tqdm(enumerate(res), desc="Finding duplicates"):
-    #     for idx, n in enumerate(res[spacer:]):
-    #         if i == n:
-    #             duplicate_idxs.append(idx+spacer)
-    #     spacer += 1
-    
-    # for duplicate in duplicate_idxs:
-    #     data[duplicate] = None
-
-    # data = [item for item in data if item is not None]
-
     print("Removing duplicates...")
     res_set = set(tuple(x) for x in res)
     res_list = [list(x) for x in res_set]
-    print("duplicates removed:", len(res) - len(res_list))
+    print("duplicates found:", len(res) - len(res_list))
 
     # based on the res_list, filter the original data
     filtered_data = []
