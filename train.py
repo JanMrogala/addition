@@ -153,6 +153,7 @@ class LitLLM(L.LightningModule):
     def run_evaluation(self, run_full_problem_eval: bool = True): # Modified line
         """Run evaluation on each dataset and log metrics."""
         # Evaluate on each dataset separately
+
         for dataset_idx, dataset_name in enumerate(self.dataset_names):
             # Get the appropriate test dataset
             test_key = f"test_{dataset_name}"
@@ -174,6 +175,7 @@ class LitLLM(L.LightningModule):
                     self.cfg.data.split_str,
                     self.global_step,
                     self.llm.model,
+                    dataset_name=dataset_name,
                 )
                 
                 # Get metrics dictionary from evaluator, passing the flag
