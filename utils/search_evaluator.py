@@ -120,15 +120,15 @@ def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]]
         automat_index, direction = parts
         automat_index = int(automat_index)
         if direction == "D":
-            if init_state[automat_index] > 0:
+            if init_state[automat_index] > (0 + nodes_indexing_margin):
                 init_state[automat_index] -= 1
             else:
                 print(f"Warning: Automat {automat_index} is already at 0.")
         elif direction == "U":
-            if init_state[automat_index] < 12:
+            if init_state[automat_index] < (nodes_num + nodes_indexing_margin):
                 init_state[automat_index] += 1
             else:
-                print(f"Warning: Automat {automat_index} is already at max 12.")
+                print(f"Warning: Automat {automat_index} is already at max {nodes_num}.")
         return
 
     # TF (Take First)
@@ -171,7 +171,7 @@ def apply_command(op: str, init_state: Dict[int,int], stack: List[Dict[int,int]]
         from collections import OrderedDict
         try:
             new_pair = ast.literal_eval(dict_str)
-            if not isinstance(new_pair, dict) or not (1 <= len(new_pair) <= 12):
+            if not isinstance(new_pair, dict) or not ((1 + nodes_indexing_margin) <= len(new_pair) <= (nodes_num + nodes_indexing_margin)):
                 print("Warning: N operation requires 1-10 key-value pairs.")
                 return
             cleanup_stack(stack)
@@ -275,7 +275,7 @@ def evaluate_full_problem(input_text: str, model, tokenizer, max_iters: int = 20
 
 
 class Evaluator:
-    def __init__(self, config, test_set, test_full_data, tokenizer, split_str, step=None, model=None):
+    def __init__(self, config, test_set, test_full_data, tokenizer, split_str, step=None, model=None, dataset_name=None):
         self.config = config
         self.num_examples = config.eval.num_examples
         self.batch_size = config.eval.batch_size
@@ -294,6 +294,20 @@ class Evaluator:
         self.full_predictions = None
         self.predictions_after_delimiter = None
 
+        global nodes_num
+        global nodes_indexing_margin
+
+        nodes_num = config.data.nodes_num
+
+        if dataset_name is not None:
+            if 'A' in dataset_name:
+                nodes_indexing_margin = config.data.nodes_indexing_margin_A
+            elif 'B' in dataset_name:
+                nodes_indexing_margin = config.data.nodes_indexing_margin_B
+            elif 'C' in dataset_name:
+                nodes_indexing_margin = config.data.nodes_indexing_margin_C
+        print(f"Using nodes_indexing_margin: {nodes_indexing_margin} for dataset {dataset_name}")
+
     def get_prompts(self):
         search_token_id = self.tokenizer.encode(self.split_str, add_special_tokens=False)[0]
 
@@ -305,8 +319,9 @@ class Evaluator:
                 split_index = input_ids.index(search_token_id)
                 # Find the EOS token
                 end_index = input_ids.index(self.tokenizer.eos_token_id) if self.tokenizer.eos_token_id in input_ids else len(input_ids)
-            except:
+            except Exception as e:
                 print("ERROR")
+                print(e)
                 print(input_ids)
                 print(sample)
                 print(self.tokenizer.decode(input_ids, skip_special_tokens=True))
@@ -408,7 +423,7 @@ class Evaluator:
                     input_text = full_text
             
             try:
-                result = evaluate_full_problem(input_text, self.hf_model, self.tokenizer, max_iters=130)
+                result = evaluate_full_problem(input_text, self.hf_model, self.tokenizer, max_iters=50)
                 if result:
                     correct += 1
                 total += 1
