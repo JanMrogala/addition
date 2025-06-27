@@ -9,7 +9,10 @@ import argparse
 parser = argparse.ArgumentParser(description='Generate chains with dependencies.')
 parser.add_argument('--max_nodes', type=int, default=12, help='Number of nodes.')
 parser.add_argument('--max_rules', type=int, default=2, help='Number of rules.')
+parser.add_argument('--indexing_margin', type=int, default=0, help='Indexing margin for nodes.')
 args = parser.parse_args()
+
+indexing_margin = args.indexing_margin
 
 def generate_snapshots(element):
     """
@@ -58,13 +61,13 @@ def generate_snapshots(element):
             automat_index = int(parts[0])
             direction = parts[1]
             if direction == "D":
-                if init_state[automat_index] > 0:
+                if init_state[automat_index] > (0+indexing_margin):
                     init_state[automat_index] -= 1
                 else:
-                    print(f"Error: Automat {automat_index} is already at minimum value 0.")
+                    print(f"Error: Automat {automat_index} is already at minimum value {0+indexing_margin}.")
                     break
             elif direction == "U":
-                if init_state[automat_index] < args.max_nodes:
+                if init_state[automat_index] < (args.max_nodes+indexing_margin):
                     init_state[automat_index] += 1
                 else:
                     print(f"Error: Automat {automat_index} is already at maximum value {args.max_nodes}.")

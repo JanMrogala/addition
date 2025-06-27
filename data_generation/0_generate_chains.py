@@ -13,11 +13,13 @@ parser.add_argument('--n', type=int, default=8, help='Number of chains.')
 parser.add_argument('--m', type=int, default=12, help='Length of chains.')
 parser.add_argument('--max_rules', type=int, default=2, help='Maximum number of rules.')
 parser.add_argument('--cross_ratio1', type=float, default=0.5, help='Crossbreed ratio for the first automata.')
+parser.add_argument('--indexing_margin', type=int, default=0, help='Indexing margin for nodes.')
 args = parser.parse_args()
 
 n = args.n
 m = args.m
 max_rules = args.max_rules
+indexing_margin = args.indexing_margin
 
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 if not os.path.exists(data_dir):
@@ -29,7 +31,7 @@ def gen_chains(n=n, m=m):
 
     for i in range(n):
         G = nx.Graph()
-        nodes = [j for j in range(m)]
+        nodes = [(j+indexing_margin) for j in range(m)]
         edges = list(zip(nodes[:-1], nodes[1:]))
 
         G.add_edges_from(edges)
@@ -128,14 +130,14 @@ def crossbreed(chain1, chain2, chain1_ratio=0.5):
         # print(f"res_graph[{i}] = chains[{chain_num}][{n  - counter}]")
         counter -= 1
     
-    random_edge1 = random.randint(0, m-2)
+    random_edge1 = random.randint((0+indexing_margin), (m-2+indexing_margin))
     while True:
-        random_edge2 = random.randint(0, m-2)
+        random_edge2 = random.randint((0+indexing_margin), (m-2+indexing_margin))
         if random_edge1 != random_edge2:
             break
 
-    res_graph[0].edges[random_edge1, random_edge1+1]['enabling'] = [{'automata_id': 1, 'node_id': random.randint(0, m-1)}]
-    res_graph[0].edges[random_edge2, random_edge2+1]['enabling'] = [{'automata_id': next_automata_id_start, 'node_id': random.randint(0, m-1)}]
+    res_graph[0].edges[random_edge1, random_edge1+1]['enabling'] = [{'automata_id': 1, 'node_id': random.randint((0+indexing_margin), (m-1+indexing_margin))}]
+    res_graph[0].edges[random_edge2, random_edge2+1]['enabling'] = [{'automata_id': next_automata_id_start, 'node_id': random.randint((0+indexing_margin), (m-1+indexing_margin))}]
 
     # add_list_to_edges(new_automata)
 

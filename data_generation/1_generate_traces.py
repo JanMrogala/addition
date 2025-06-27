@@ -12,9 +12,10 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument("--file_name", type=str, default="automata1.pkl", help="Path to the chains to make samples from")
 parser.add_argument("--num_of_samples", type=int, default=50000, help="Total number of samples to generate")
-
+parser.add_argument('--indexing_margin', type=int, default=0, help='Indexing margin for nodes.')
 args = parser.parse_args()
 
+indexing_margin = args.indexing_margin
 data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 def get_sample(vector, graphs):
@@ -22,7 +23,7 @@ def get_sample(vector, graphs):
     vec = list(vector)  # [1,2,3,4]
     for i in range(num_states):
         if vec[0] != i:
-            yield vec, i
+            yield vec, (i+indexing_margin)
 
 def get_vectors(chains, amplitude):
     states_per_chain = []
