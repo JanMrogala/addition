@@ -28,7 +28,6 @@ logging.basicConfig(
 )
 logging.info("Starting training...")
 
-
 class LitLLM(L.LightningModule):
     def __init__(self, cfg, model, preprocessor, train_batches, delimiter_token_id, trainer_ckpt_path=None):
         super().__init__()
@@ -148,9 +147,9 @@ class LitLLM(L.LightningModule):
         self.run_evaluation(run_full_problem_eval=False)
         
         # Run full problem evaluation only every 10 epochs
-        if (self.current_epoch + 1) % 10 == 0:
+        if (self.current_epoch + 1) % 20 == 0:
             self.run_evaluation(run_full_problem_eval=True)
-    
+
     def run_evaluation(self, run_full_problem_eval: bool = True): # Modified line
         """Run evaluation on each dataset and log metrics."""
         # Evaluate on each dataset separately
@@ -367,4 +366,5 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    
     main()
