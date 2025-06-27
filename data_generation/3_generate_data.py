@@ -2,6 +2,14 @@ import pickle
 import random
 import os
 import ast
+import argparse
+
+# add command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--indexing_margin', type=int, default=0, help='Indexing margin to offset graph index and node index')
+args = parser.parse_args()
+
+indexing_margin = args.indexing_margin
 
 temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "temp")
 
@@ -37,7 +45,7 @@ def tokenize_command(command):
         dict_str = command[2:].strip()
         try:
             parsed_dict = ast.literal_eval(dict_str)
-            formatted_pairs = [f"{k} : {v}" for k, v in parsed_dict.items()]
+            formatted_pairs = [f"{k+indexing_margin} : {v+indexing_margin}" for k, v in parsed_dict.items()]
             command = f'N {{ {" , ".join(formatted_pairs)} }}'
         except Exception as e:
             print(f"Warning: Failed to parse N command '{command}': {e}")
@@ -47,12 +55,12 @@ def tokenize_command(command):
 def get_tokens(snapshots,i,j):
     tokens = "Init_state: [ "
     for k,v in snapshots[i][j]['init_state'].items():
-        tokens += f"{k} : {v} , "
+        tokens += f"{k+indexing_margin} : {v+indexing_margin} , "
     tokens = tokens[:-3] + " ] Stack: [ "
     for s in snapshots[i][j]['stack']:
         tokens += " { "
         for k,v in s.items():
-            tokens += f"{k} : {v} , "
+            tokens += f"{k+indexing_margin} : {v+indexing_margin} , "
         tokens = tokens[:-3] + " } , "
     tokens = tokens[:-3] + " ]"
     tokens += " Command: " + tokenize_command(snapshots[i][j]['path'][0])

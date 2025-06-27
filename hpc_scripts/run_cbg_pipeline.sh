@@ -29,7 +29,8 @@ function run_cbg_pipeline {
         --max_nodes $num_of_nodes \
         --max_rules $max_rules \
 
-    python data_generation/3_generate_data.py
+    python data_generation/3_generate_data.py \
+        --indexing_margin $indexing_margin
 
     python data_generation/4_convert_to_json.py
 
