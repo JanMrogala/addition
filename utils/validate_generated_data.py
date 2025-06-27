@@ -30,18 +30,18 @@ def filter_data(data, tokenizer):
         input_ids = get_input_ids(item['text'], tokenizer)
         res.append(input_ids)
 
-    print("Removing duplicates...")
+    print("Finding duplicates...")
     res_set = set(tuple(x) for x in res)
     res_list = [list(x) for x in res_set]
-    print("duplicates found:", len(res) - len(res_list))
+    print("Duplicates found:", len(res) - len(res_list))
 
     # based on the res_list, filter the original data
     filtered_data = []
-    for item in tqdm(data, desc="Filtering data"):
-        input_ids = get_input_ids(item['text'], tokenizer)
-        if input_ids in res_list:
+    for idx, item in tqdm(enumerate(data), desc="Filtering data"):
+        # input_ids = get_input_ids(item['text'], tokenizer)
+        if res[idx] in res_list:
             filtered_data.append(item)
-            res_list.remove(input_ids)  # Remove to ensure uniqueness
+            res_list.remove(res[idx])  # Remove to ensure uniqueness
 
     return filtered_data
 
@@ -62,7 +62,9 @@ def main(tok_data: DictConfig):
             test = json.load(f)
             test_len = len(test)
         
+        print("Analyzing train set...")
         train = filter_data(train, tokenizer)
+        print("Analyzing test set...")
         test = filter_data(test, tokenizer)
 
         with open(f"data/t_search/{format}/train.json", "w") as f:
