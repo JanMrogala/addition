@@ -65,7 +65,7 @@ model:
 
   batch_size: 128
   accumulate_grad_batches: 1
-  block_size: 256
+  block_size: 64
   epochs: 500
 
   n_layer: 12
