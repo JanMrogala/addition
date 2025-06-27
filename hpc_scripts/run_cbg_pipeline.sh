@@ -1,7 +1,7 @@
 samples=100
-# num_of_chains=5
-# num_of_nodes=5
-# max_rules=4
+num_of_chains=8
+num_of_nodes=8
+max_rules=2
 cross_ratio1=0.5
 
 
@@ -13,20 +13,24 @@ function run_cbg_pipeline {
     local cross_ratio1=$5
     local file=$6
     local out_name=$7
+    local indexing_margin=$8
 
     python data_generation/0_generate_chains.py \
         --n $num_of_chains \
         --m $num_of_nodes \
         --max_rules $max_rules \
         --cross_ratio1 $cross_ratio1 \
+        --indexing_margin $indexing_margin \
 
     python data_generation/1_generate_traces.py \
         --file_name $file \
         --num_of_samples $samples \
+        --indexing_margin $indexing_margin \
 
     python data_generation/2_generate_snapshot_batch.py \
         --max_nodes $num_of_nodes \
         --max_rules $max_rules \
+        --indexing_margin $indexing_margin \
 
     python data_generation/3_generate_data.py
 
@@ -37,43 +41,15 @@ function run_cbg_pipeline {
     mv data/*.json data/t_search/$out_name
 }
 
-for chains in {12..12}
-do
+# Call the function with the parameters
+run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata1.pkl" "A" 0
+run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "automata2.pkl" "B" 100
+run_cbg_pipeline $samples $num_of_chains $num_of_nodes $max_rules $cross_ratio1 "res_G.pkl" "C" 200
 
-    for nodes in {12..12}
-    do
+python data_generation/t_postprocess.py
 
-        for rule in {3..3}
-        do
+python utils/create_tokenizer.py
 
-        start_time=$(date +%s)
+python utils/validate_generated_data.py
 
-        # Call the function with the parameters
-        run_cbg_pipeline $samples $chains $nodes $rule $cross_ratio1 "automata1.pkl" "A"
-        run_cbg_pipeline $samples $chains $nodes $rule $cross_ratio1 "automata2.pkl" "B"
-        run_cbg_pipeline $samples $chains $nodes $rule $cross_ratio1 "res_G.pkl" "C"
-
-        python data_generation/t_postprocess.py
-
-        python utils/create_tokenizer.py
-
-        python utils/validate_generated_data.py
-
-        python data_generation/t_postprocess.py
-
-        end_time=$(date +%s)
-        duration=$((end_time - start_time))
-
-        python utils/search_statistics.py \
-            --num_of_samples $samples \
-            --num_of_chains $chains \
-            --num_of_nodes $nodes \
-            --max_rules $rule \
-            --duration $duration
-
-        done
-
-    done
-
-done
-
+python data_generation/t_postprocess.py
