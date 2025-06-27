@@ -20,17 +20,14 @@ function run_cbg_pipeline {
         --m $num_of_nodes \
         --max_rules $max_rules \
         --cross_ratio1 $cross_ratio1 \
-        --indexing_margin $indexing_margin \
 
     python data_generation/1_generate_traces.py \
         --file_name $file \
         --num_of_samples $samples \
-        --indexing_margin $indexing_margin \
 
     python data_generation/2_generate_snapshot_batch.py \
         --max_nodes $num_of_nodes \
         --max_rules $max_rules \
-        --indexing_margin $indexing_margin \
 
     python data_generation/3_generate_data.py
 
